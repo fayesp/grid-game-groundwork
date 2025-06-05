@@ -8,338 +8,426 @@ using System.Linq;
 
 public class LevelEditor : EditorWindow {
      
-   	int selGridInt = 0;
+    #region 字段定义
+
+    // 选择的预制体索引
+    int selGridInt = 0;
+    // 预制体名称数组
     string[] selectStrings;
-   
-	int rotateInt = 0;       
+
+    // 旋转角度索引
+    int rotateInt = 0;
+    // 旋转角度字符串数组
     string[] rotateStrings = new string[] {
-    	"0", "90", "180", "270"    
-	};    
-	
+        "0", "90", "180", "270"
+    };
+
+    // 生成高度
     int spawnHeight = 0;
-	string currentLevel;
+    // 当前关卡名
+    string currentLevel;
+    // 新关卡名
     string newLevelName = "";
-	string levelPath => Application.dataPath + "/Resources/Levels/";
-	bool overwriteLevel = true;
-                        
+    // 关卡文件保存路径
+    string levelPath => Application.dataPath + "/Resources/Levels/";
+    // 是否覆盖关卡
+    bool overwriteLevel = true;
+
+    // 可用的预制体数组
     public GameObject[] prefabs;
 
-    bool isHoldingAlt; 
+    // 编辑器状态相关
+    bool isHoldingAlt;
     bool mouseButtonDown;
-	bool in2DMode;
+    bool in2DMode;
     Vector3 drawPos;
-	static GameObject newGameObject;
-	static bool playModeActive;
-	Event e;
-	bool titleIsSet;
+    static GameObject newGameObject;
+    static bool playModeActive;
+    Event e;
+    bool titleIsSet;
+
+    // 预制体配置文件路径
     static string textFilePath => Application.dataPath + "/leveleditorprefabs.txt";
+    // 已保存关卡列表
     List<string> savedLevels => Utils.allLevels;
+    // 已保存关卡索引
     int savedLevelIndex = 0;
-	int sceneLevelIndex;
-	bool snapToGrid = true;
-	bool isLoading;
-	bool isDirty;
-	Vector3 prevPosition;
-	Vector2 scrollPos;
-	Color gizmoColor = Color.white;
-	Vector2 mousePosOnClick = new Vector2();
-	bool refreshPrefabs = true;
+    // 场景关卡索引
+    int sceneLevelIndex;
+    // 是否吸附到网格
+    bool snapToGrid = true;
+    // 是否正在加载
+    bool isLoading;
+    // 是否有未保存更改
+    bool isDirty;
+    // 上一次物体位置
+    Vector3 prevPosition;
+    // 滚动视图位置
+    Vector2 scrollPos;
+    // Gizmo颜色
+    Color gizmoColor = Color.white;
+    // 鼠标点击时的位置
+    Vector2 mousePosOnClick = new Vector2();
+    // 是否刷新预制体
+    bool refreshPrefabs = true;
 
-	GUIStyle wrapperRef;
-	GUIStyle wrapper {
-		get {
-			if (wrapperRef == null) {
-				wrapperRef = new GUIStyle();
-				wrapperRef.padding = new RectOffset(20,20,20,20);
-				float n = 0.16f;
-				wrapperRef.normal.background = Utils.MakeTex(1, 1, new Color(n, n, n, 1f));
-			}
-			return wrapperRef;
-		}
-	}
-
-	GameObject levelRef = null;
-    GameObject levelManagerGameObject {
-		get {
-			if (levelRef == null) {
-				LevelManager levelManager = FindObjectOfType<LevelManager>();
-				if (levelManager != null) {
-					levelRef = levelManager.gameObject;
-				} else {
-					levelRef = new GameObject();
-					levelRef.AddComponent<LevelManager>();
-					levelRef.transform.name = "LevelManager";
-				}
-			}
-			return levelRef;
-		}
+    // GUI样式缓存
+    GUIStyle wrapperRef;
+    // GUI样式
+    GUIStyle wrapper {
+        get {
+            if (wrapperRef == null) {
+                wrapperRef = new GUIStyle();
+                wrapperRef.padding = new RectOffset(20,20,20,20);
+                float n = 0.16f;
+                wrapperRef.normal.background = Utils.MakeTex(1, 1, new Color(n, n, n, 1f));
+            }
+            return wrapperRef;
+        }
     }
 
-	GameObject currentLevelParentRef;
-	GameObject currentLevelParent {
-		get {
-			if (currentLevelParentRef == null) {
-				GameObject existingLevelParent = GameObject.Find(currentLevel);
-				if (existingLevelParent != null && existingLevelParent.CompareTag("Level")) {
-					currentLevelParentRef = existingLevelParent;
-				} else {
-					currentLevelParentRef = new GameObject();
-					currentLevelParentRef.transform.name = currentLevel;
-					currentLevelParentRef.transform.parent = levelManagerGameObject.transform;
-				}
-			}
-			return currentLevelParentRef;
-		}
-	}
+    // 关卡管理器引用
+    GameObject levelRef = null;
+    GameObject levelManagerGameObject {
+        get {
+            if (levelRef == null) {
+                LevelManager levelManager = FindObjectOfType<LevelManager>();
+                if (levelManager != null) {
+                    levelRef = levelManager.gameObject;
+                } else {
+                    levelRef = new GameObject();
+                    levelRef.AddComponent<LevelManager>();
+                    levelRef.transform.name = "LevelManager";
+                }
+            }
+            return levelRef;
+        }
+    }
 
-	void HorizontalLine() => EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+    // 当前关卡父物体引用
+    GameObject currentLevelParentRef;
+    GameObject currentLevelParent {
+        get {
+            if (currentLevelParentRef == null) {
+                GameObject existingLevelParent = GameObject.Find(currentLevel);
+                if (existingLevelParent != null && existingLevelParent.CompareTag("Level")) {
+                    currentLevelParentRef = existingLevelParent;
+                } else {
+                    currentLevelParentRef = new GameObject();
+                    currentLevelParentRef.transform.name = currentLevel;
+                    currentLevelParentRef.transform.parent = levelManagerGameObject.transform;
+                }
+            }
+            return currentLevelParentRef;
+        }
+    }
 
-	List<string> allLevels => Utils.allLevels;
+    #endregion
 
-	[MenuItem("Window/Level Editor")] 
-	public static void ShowWindow() {
-		EditorWindow.GetWindow(typeof(LevelEditor));
-	}
+    #region 工具方法
 
-	void OnEnable() {
-		SceneView.duringSceneGui += SceneGUI;
+    /// <summary>
+    /// 绘制水平线
+    /// </summary>
+    void HorizontalLine() => EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+
+    /// <summary>
+    /// 获取所有关卡列表
+    /// </summary>
+    List<string> allLevels => Utils.allLevels;
+
+    /// <summary>
+    /// 添加菜单项，显示关卡编辑器窗口
+    /// </summary>
+    [MenuItem("Window/Level Editor")]
+    public static void ShowWindow() {
+        EditorWindow.GetWindow(typeof(LevelEditor));
+    }
+
+    /// <summary>
+    /// 编辑器窗口启用时回调
+    /// </summary>
+    void OnEnable() {
+        SceneView.duringSceneGui += SceneGUI;
         EditorApplication.playModeStateChanged += ChangedPlayModeState;
         Undo.undoRedoPerformed += Refresh;
-		PopulateList();
+        PopulateList();
     }
 
-	void OnDisable() {
-		SceneView.duringSceneGui -= SceneGUI;
+    /// <summary>
+    /// 编辑器窗口禁用时回调
+    /// </summary>
+    void OnDisable() {
+        SceneView.duringSceneGui -= SceneGUI;
         EditorApplication.playModeStateChanged -= ChangedPlayModeState;
         Undo.undoRedoPerformed -= Refresh;
-	}
+    }
 
+    /// <summary>
+    /// 监听播放模式切换
+    /// </summary>
     void ChangedPlayModeState(PlayModeStateChange state) {
-		switch (state) {
-			case PlayModeStateChange.EnteredPlayMode:
-				playModeActive = true;
-				break;
-			case PlayModeStateChange.EnteredEditMode:
-				playModeActive = false;
-				GetPlayModeJobs();
-				break;
-		}
+        switch (state) {
+            case PlayModeStateChange.EnteredPlayMode:
+                playModeActive = true;
+                break;
+            case PlayModeStateChange.EnteredEditMode:
+                playModeActive = false;
+                GetPlayModeJobs();
+                break;
+        }
     }
        
-	void OnValidate() {
-		if (Utils.isMetaScene) return;
-		if (Game.instance == null) {
-			return;
-			//var prefab = (GameObject)AssetDatabase.LoadAssetAtPath(PathToAsset("GameController"), typeof(GameObject));
-	        //var go = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-		} 
-		EnsureTagsExist();
- 		Reset();
-		Refresh();
-		refreshPrefabs = true;
-	}
+    /// <summary>
+    /// 检查和初始化
+    /// </summary>
+    void OnValidate() {
+        if (Utils.isMetaScene) return;
+        if (Game.instance == null) {
+            return;
+            //var prefab = (GameObject)AssetDatabase.LoadAssetAtPath(PathToAsset("GameController"), typeof(GameObject));
+            //var go = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+        } 
+        EnsureTagsExist();
+        Reset();
+        Refresh();
+        refreshPrefabs = true;
+    }
 
-	void Reset() {
-		mouseButtonDown = false;
-		CreateGizmoObject();
-	}
-	
-	void Refresh() {
-		if (Utils.isMetaScene) return;
-		Game.instance?.EditorRefresh();
-		RefreshSavedLevels();
-	}
+    /// <summary>
+    /// 重置部分状态
+    /// </summary>
+    void Reset() {
+        mouseButtonDown = false;
+        CreateGizmoObject();
+    }
+    
+    /// <summary>
+    /// 刷新关卡和预制体
+    /// </summary>
+    void Refresh() {
+        if (Utils.isMetaScene) return;
+        Game.instance?.EditorRefresh();
+        RefreshSavedLevels();
+    }
 
-	void CreateGizmoObject() {
-		LevelGizmo levelGizmo = FindObjectOfType<LevelGizmo>();
-		if (levelGizmo == null) {
-  			new GameObject("LevelGizmo").AddComponent<LevelGizmo>();
-		}
-	}
+    /// <summary>
+    /// 创建Gizmo对象
+    /// </summary>
+    void CreateGizmoObject() {
+        LevelGizmo levelGizmo = FindObjectOfType<LevelGizmo>();
+        if (levelGizmo == null) {
+            new GameObject("LevelGizmo").AddComponent<LevelGizmo>();
+        }
+    }
 
-	void PopulateList() {
+    /// <summary>
+    /// 读取预制体列表
+    /// </summary>
+    void PopulateList() {
 
         if (File.Exists(textFilePath)) {
-			List<GameObject> newPrefabs = new List<GameObject>();
+            List<GameObject> newPrefabs = new List<GameObject>();
             string[] prefabNames = File.ReadAllLines(textFilePath);
-			foreach (string prefabName in prefabNames) {
-				GameObject go = (GameObject)AssetDatabase.LoadAssetAtPath(PathToAsset(prefabName), typeof(GameObject));
-				if (go != null) {
-					newPrefabs.Add(go);
-				}
-			}
-			prefabs = newPrefabs.ToArray();
-		}
-	}
+            foreach (string prefabName in prefabNames) {
+                GameObject go = (GameObject)AssetDatabase.LoadAssetAtPath(PathToAsset(prefabName), typeof(GameObject));
+                if (go != null) {
+                    newPrefabs.Add(go);
+                }
+            }
+            prefabs = newPrefabs.ToArray();
+        }
+    }
 
-	string PathToAsset(string s) {
+    /// <summary>
+    /// 通过名称查找预制体资源路径
+    /// </summary>
+    string PathToAsset(string s) {
         string[] guids = AssetDatabase.FindAssets(s, null);
         foreach (string guid in guids) {
-			string path = AssetDatabase.GUIDToAssetPath(guid);
-			if (path.ToLower().Contains(".prefab")) {
-				string fileName = Path.GetFileNameWithoutExtension(path);
-				if (fileName == s) {
-					return path;
-				}
-			}
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (path.ToLower().Contains(".prefab")) {
+                string fileName = Path.GetFileNameWithoutExtension(path);
+                if (fileName == s) {
+                    return path;
+                }
+            }
         }
-		Debug.LogError("Couldnt find a prefab named " + s);
-		return string.Empty;
-	}
+        Debug.LogError("Couldnt find a prefab named " + s);
+        return string.Empty;
+    }
 
-	void RefreshSavedLevels() {
-		Utils.RefreshLevels();
-	}
+    /// <summary>
+    /// 刷新已保存关卡列表
+    /// </summary>
+    void RefreshSavedLevels() {
+        Utils.RefreshLevels();
+    }
 
-	void EnsureTagsExist() {
-		TagHelper.AddTag("Level");
-		TagHelper.AddTag("Tile");
-	}
-	
-	void OnGUI() {
+    /// <summary>
+    /// 确保Tag存在
+    /// </summary>
+    void EnsureTagsExist() {
+        TagHelper.AddTag("Level");
+        TagHelper.AddTag("Tile");
+    }
 
-		string previousLevel = currentLevel;
-		if (!titleIsSet) {
-			titleIsSet = true;
-			var texture = Resources.Load<Texture2D>("ggg");
-			titleContent = new GUIContent("Level Editor", texture);
-		}
+    #endregion
+
+    #region 主GUI绘制
+
+    /// <summary>
+    /// 主窗口GUI
+    /// </summary>
+    void OnGUI() {
+
+        string previousLevel = currentLevel;
+        if (!titleIsSet) {
+            titleIsSet = true;
+            var texture = Resources.Load<Texture2D>("ggg");
+            titleContent = new GUIContent("Level Editor", texture);
+        }
 
         GUILayout.BeginVertical(wrapper);
 
-			scrollPos = GUILayout.BeginScrollView(scrollPos); 
-				DrawingWindow();
-				RefreshSavedLevels();
-				SaveLoadWindow();
-			EditorGUILayout.EndScrollView();
+            scrollPos = GUILayout.BeginScrollView(scrollPos); 
+                DrawingWindow();
+                RefreshSavedLevels();
+                SaveLoadWindow();
+            EditorGUILayout.EndScrollView();
         GUILayout.EndVertical();
 
-		if (previousLevel != currentLevel) {
-			Selection.activeGameObject = currentLevelParent;
-		}
-	}
+        if (previousLevel != currentLevel) {
+            Selection.activeGameObject = currentLevelParent;
+        }
+    }
 
-	void DrawingWindow() {
+    /// <summary>
+    /// 绘制关卡编辑区
+    /// </summary>
+    void DrawingWindow() {
 
-		GUILayout.Label ("DRAWING", EditorStyles.centeredGreyMiniLabel);
-		HorizontalLine();
+        GUILayout.Label ("DRAWING", EditorStyles.centeredGreyMiniLabel);
+        HorizontalLine();
 
-		if (string.IsNullOrWhiteSpace(currentLevel)) {
-			GameObject level = GameObject.FindGameObjectWithTag("Level");
-			if (level != null) {
-				currentLevel = level.name;
-			}
-		}
-		
-		// FOR MULTIPLE SCENES AT ONCE
+        if (string.IsNullOrWhiteSpace(currentLevel)) {
+            GameObject level = GameObject.FindGameObjectWithTag("Level");
+            if (level != null) {
+                currentLevel = level.name;
+            }
+        }
+        
+        // FOR MULTIPLE SCENES AT ONCE
 
-		GUILayout.Label ("Currently Editing: ", EditorStyles.boldLabel);
+        GUILayout.Label ("Currently Editing: ", EditorStyles.boldLabel);
 
-		sceneLevelIndex = 0;
-		for (int i = 0; i < allLevels.Count; i++) {
-			if (allLevels[i] == currentLevel) {
-				sceneLevelIndex = i;
-			}
-		}
+        sceneLevelIndex = 0;
+        for (int i = 0; i < allLevels.Count; i++) {
+            if (allLevels[i] == currentLevel) {
+                sceneLevelIndex = i;
+            }
+        }
         sceneLevelIndex = EditorGUILayout.Popup(sceneLevelIndex, allLevels.ToArray());
-		currentLevel = allLevels[sceneLevelIndex];
+        currentLevel = allLevels[sceneLevelIndex];
 
-		if (currentLevel == null) {
-			return;
-		}
-		
-		EditorGUILayout.Space();
+        if (currentLevel == null) {
+            return;
+        }
+        
+        EditorGUILayout.Space();
 
-		if (prefabs == null || prefabs.Length == 0) {
-			PopulateList();
-		}
+        if (prefabs == null || prefabs.Length == 0) {
+            PopulateList();
+        }
 
-		if (prefabs != null && refreshPrefabs) {
-			List<string> selectStringsTmp = new List<string>();
-			selectStringsTmp.Add("None");
-			selectStringsTmp.Add("Erase");
-			foreach (GameObject prefab in prefabs) {
-				if (prefab != null) {
-					selectStringsTmp.Add(prefab.transform.name);
-				}
-			}
-			selectStrings = selectStringsTmp.ToArray();
-			refreshPrefabs = false;
-		}
+        if (prefabs != null && refreshPrefabs) {
+            List<string> selectStringsTmp = new List<string>();
+            selectStringsTmp.Add("None");
+            selectStringsTmp.Add("Erase");
+            foreach (GameObject prefab in prefabs) {
+                if (prefab != null) {
+                    selectStringsTmp.Add(prefab.transform.name);
+                }
+            }
+            selectStrings = selectStringsTmp.ToArray();
+            refreshPrefabs = false;
+        }
  
-		GUILayout.Label ("Selected GameObject:", EditorStyles.boldLabel);
+        GUILayout.Label ("Selected GameObject:", EditorStyles.boldLabel);
         selGridInt = GUILayout.SelectionGrid(selGridInt, selectStrings, 3, GUILayout.Width(370));
 
-		BigSpace();
+        BigSpace();
 
-		GUILayout.Label ("GameObject Rotation:", EditorStyles.boldLabel);
+        GUILayout.Label ("GameObject Rotation:", EditorStyles.boldLabel);
         rotateInt = GUILayout.SelectionGrid(rotateInt, rotateStrings, 4, GUILayout.Width(330));
 
-		BigSpace();
+        BigSpace();
 
         gizmoColor = EditorGUILayout.ColorField("Gizmo Color:", gizmoColor);
 
-		///////////////// SPAWN //////////////////
+        ///////////////// SPAWN //////////////////
 
         spawnHeight = EditorGUILayout.IntSlider("Spawn at height:", spawnHeight, 0, 20);
 
         snapToGrid = EditorGUILayout.Toggle("Snap to grid:", snapToGrid);
 
-		BigSpace();
+        BigSpace();
 
-		///////////////// ROTATION //////////////////
+        ///////////////// ROTATION //////////////////
 
-		EditorGUILayout.BeginHorizontal();
-		GUILayout.Label ("Rotate Level:", EditorStyles.boldLabel);
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label ("Rotate Level:", EditorStyles.boldLabel);
         if (GUILayout.Button("90° CW", GUILayout.Width(80))) {
-        	RotateLevel(90);
+            RotateLevel(90);
         }
         if (GUILayout.Button("90° CCW", GUILayout.Width(80))) {
-        	RotateLevel(-90);
+            RotateLevel(-90);
         }
         if (GUILayout.Button("180°", GUILayout.Width(80))) {
-        	RotateLevel(180);
+            RotateLevel(180);
         }
         EditorGUILayout.EndHorizontal();
 
-		BigSpace();
+        BigSpace();
 
-		///////////////// INVERSION //////////////////
+        ///////////////// INVERSION //////////////////
 
-		EditorGUILayout.BeginHorizontal();
-		GUILayout.Label ("Invert Level:", EditorStyles.boldLabel);
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label ("Invert Level:", EditorStyles.boldLabel);
         if (GUILayout.Button("X axis", GUILayout.Width(80))) {
-        	InvertLevel("x");
+            InvertLevel("x");
         }
         if (GUILayout.Button("Y axis", GUILayout.Width(80))) {
-        	InvertLevel("y");
+            InvertLevel("y");
         }
         EditorGUILayout.EndHorizontal();
 
-		BigSpace();
-	}
+        BigSpace();
+    }
          
-	void SaveLoadWindow() {
+    /// <summary>
+    /// 绘制保存与加载区
+    /// </summary>
+    void SaveLoadWindow() {
 
-		GUILayout.Label ("SAVING AND LOADING", EditorStyles.centeredGreyMiniLabel);
-		HorizontalLine();
-		EditorGUILayout.Space();
+        GUILayout.Label ("SAVING AND LOADING", EditorStyles.centeredGreyMiniLabel);
+        HorizontalLine();
+        EditorGUILayout.Space();
 
-		
-		EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.BeginHorizontal();
 
-		if (string.IsNullOrWhiteSpace(newLevelName)) {
-			if (GameObject.FindGameObjectWithTag("Level") == null) {
-				GUILayout.Label ("To create a new level, give it a name: ");
-			} else {
-				newLevelName = currentLevelParent.name;
-			}
-		}
-		
+        if (string.IsNullOrWhiteSpace(newLevelName)) {
+            if (GameObject.FindGameObjectWithTag("Level") == null) {
+                GUILayout.Label ("To create a new level, give it a name: ");
+            } else {
+                newLevelName = currentLevelParent.name;
+            }
+        }
+        
         if (!string.IsNullOrWhiteSpace(newLevelName) && GUILayout.Button("Save Level As", GUILayout.Width(150))) {
 
-			currentLevelParent.transform.name = currentLevel = newLevelName;
-			newLevelName = RemoveInvalidChars(newLevelName);
+            currentLevelParent.transform.name = currentLevel = newLevelName;
+            newLevelName = RemoveInvalidChars(newLevelName);
         	string path = "Assets/Resources/Levels/" + newLevelName + ".txt";
 
 			if (File.Exists(path)) {
@@ -393,17 +481,30 @@ public class LevelEditor : EditorWindow {
 		}
 	}
                  
-	void BigSpace() {
+    /// <summary>
+    /// 增加空白间隔
+    /// </summary>
+    void BigSpace() {
 		EditorGUILayout.Space();
 		EditorGUILayout.Space();
 		EditorGUILayout.Space();
 	}
 
-	public string RemoveInvalidChars(string filename) {
-		return string.Concat(filename.Split(Path.GetInvalidFileNameChars()));
-	}
+    /// <summary>
+    /// 移除非法文件名字符
+    /// </summary>
+    public string RemoveInvalidChars(string filename) {
+        return string.Concat(filename.Split(Path.GetInvalidFileNameChars()));
+    }
 
-	void SaveToDisk(string levelName) {
+    #endregion
+
+    #region 关卡保存与加载
+
+    /// <summary>
+    /// 保存关卡到磁盘
+    /// </summary>
+    void SaveToDisk(string levelName) {
 
 		if(!System.IO.Directory.Exists(levelPath)) {
 			System.IO.Directory.CreateDirectory(levelPath);
@@ -418,9 +519,12 @@ public class LevelEditor : EditorWindow {
 		AssetDatabase.Refresh();
 
 		isDirty = false;
-	}
+    }
 
-	void LoadFromDisk(string levelName) {
+    /// <summary>
+    /// 从磁盘加载关卡
+    /// </summary>
+    void LoadFromDisk(string levelName) {
 
 		if (isLoading || string.IsNullOrWhiteSpace(levelName)) {
 			return;
@@ -457,9 +561,16 @@ public class LevelEditor : EditorWindow {
 		newLevelName = levelName;
 		isLoading = false;
 		isDirty = false;
-	}
+    }
 
-	void Update() {
+    #endregion
+
+    #region 编辑器事件与辅助
+
+    /// <summary>
+    /// 编辑器Update事件
+    /// </summary>
+    void Update() {
         if (!EditorApplication.isPlaying && Selection.transforms.Length > 0 && Selection.transforms[0].position != prevPosition) {
 			foreach (Transform t in Selection.transforms) {
 				if (t.CompareTag("Level")) {
@@ -473,9 +584,12 @@ public class LevelEditor : EditorWindow {
 				}
 			}
 		}
-	}
+    }
 
-	void GetPlayModeJobs() {
+    /// <summary>
+    /// 播放模式下的关卡操作
+    /// </summary>
+    void GetPlayModeJobs() {
 		LevelPlayModePersistence.Job[] jobs = LevelPlayModePersistence.GetJobs();
 		foreach (LevelPlayModePersistence.Job job in jobs) {
 			if (job.name == "clear") {
@@ -486,7 +600,10 @@ public class LevelEditor : EditorWindow {
 		}
 	}
 
-	void PlayModeCreateObject(string objName, Vector3 position, Vector3 eulerAngles) {
+    /// <summary>
+    /// 播放模式下创建对象
+    /// </summary>
+    void PlayModeCreateObject(string objName, Vector3 position, Vector3 eulerAngles) {
 		for (int i = 0; i < prefabs.Length; i++) {
 			if (prefabs[i].transform.name == objName) {
 				selGridInt = i + 2;
@@ -496,7 +613,14 @@ public class LevelEditor : EditorWindow {
 		newGameObject.transform.eulerAngles = eulerAngles;
 	}
          
-	public void SceneGUI(SceneView sceneView) {
+    #endregion
+
+    #region 场景视图交互
+
+    /// <summary>
+    /// 场景视图GUI事件
+    /// </summary>
+    public void SceneGUI(SceneView sceneView) {
 
 		if (Utils.isMetaScene) return;
 		if (currentLevelParentRef == null) return;
@@ -584,6 +708,9 @@ public class LevelEditor : EditorWindow {
 		Repaint();
     }
  
+    /// <summary>
+    /// 根据鼠标位置获取世界坐标
+    /// </summary>
     Vector3 GetPosition(Vector3 mousePos) {
 		if (in2DMode) {
 			Vector3 screenPosition = HandleUtility.GUIPointToWorldRay(mousePos).origin;
@@ -609,6 +736,9 @@ public class LevelEditor : EditorWindow {
 		return Vector3.zero;
     }
 
+	/// <summary>
+	/// 通过名称获取预制体
+	/// </summary>
 	GameObject GetPrefabByName(string s) {
 		foreach (GameObject prefab in prefabs) {
 			if (prefab.transform.name.Contains(s)) {
@@ -618,6 +748,9 @@ public class LevelEditor : EditorWindow {
 		return null;
 	}
 
+    /// <summary>
+    /// 创建对象或擦除对象
+    /// </summary>
     void CreateObject(Vector3 pos) {
 
 		if (selGridInt == 1) {
@@ -667,11 +800,17 @@ public class LevelEditor : EditorWindow {
 		isDirty = true;
     }
                         
+    /// <summary>
+    /// 旋转关卡
+    /// </summary>
     void RotateLevel(int degrees) {
     	currentLevelParent.transform.eulerAngles += new Vector3 (0,0,degrees);
 		isDirty = true;
     }
             
+    /// <summary>
+    /// 翻转关卡
+    /// </summary>
     void InvertLevel(string axis) {
     	foreach (Transform child in currentLevelParent.transform) {
 			Vector3 p = child.position;
@@ -687,6 +826,9 @@ public class LevelEditor : EditorWindow {
 		isDirty = true;
     } 
       
+    /// <summary>
+    /// 擦除指定位置的对象
+    /// </summary>
     void ClearObjectsAtPosition(Vector3Int pos) {
 
 		bool foundSomething = true;
@@ -707,6 +849,9 @@ public class LevelEditor : EditorWindow {
 		isDirty = true;
     }
 
+	/// <summary>
+	/// 获取目标Transform（如Extender特殊处理）
+	/// </summary>
 	Transform GetTarget(Transform t) {
 		if (t.name.Contains("Extender")) {
 			return t.GetComponentInChildren<Wall>().transform;
