@@ -168,5 +168,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc8093f936db2cc4280fa562d94bb49a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  goalPosition: {x: 0, y: 0, z: 0}
   isFalling: 0
+  isNotRound: 0
+  rightDir: []
+  leftDir: []
+  upDir: []
+  downDir: []
+  forwardDir: []
+  backDir: []
+  AttachBlock: []
+  InputBuffer: []

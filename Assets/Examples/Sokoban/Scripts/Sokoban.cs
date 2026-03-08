@@ -6,7 +6,7 @@ public class Sokoban : MonoBehaviour
     public GameObject winText;
 
     void Start() {
-        Game.isPolyban = false;
+        //Game.allowPushMulti = false;
         winText.SetActive(false);
     }
 
