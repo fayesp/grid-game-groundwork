@@ -4,138 +4,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Unity 2019.x LTS framework for creating grid-based/block-pushing/Sokoban-like puzzle games. The project provides a complete foundation including level editor, undo/redo system, and animation handling via DOTween.
+Grid Game Groundwork is a Unity project and level editor for making grid-based/block-pushing/Sokoban-like games. Built with Unity 2019.4.10f1 LTS.
 
-**Key Dependency**: DOTween by Demigiant (installed in Assets/Plugins/Demigiant/)
+**Required Dependency**: DOTween by Demigiant (http://dotween.demigiant.com/)
 
-## Coordinate System Convention
+## Unity Development
 
-**Important**: This project uses a non-standard Unity coordinate system:
-- **X, Y**: Horizontal plane (left/right, up/down in 2D view)
-- **Z**: Vertical axis (forward = down, back = up)
-
-This is opposite to Unity's default where Y is typically the vertical up axis. When working with coordinates:
-- `Utils.forward` = `(0, 0, 1)` (downward)
-- `Utils.back` = `(0, 0, -1)` (upward)
+Open the project in Unity Editor (2019.4.x LTS recommended). The main scene is `Assets/Scenes/LevelScene.unity`. Add the "GameController" prefab to new scenes.
 
 ## Core Architecture
 
-### Main Singleton
+### Object Hierarchy
+- **Mover**: Base class for objects that can move, fall, and be tracked for undo. Derive custom game objects from this class (e.g., Player).
+- **Wall**: Static objects that block movement. Both Walls and Movers require child GameObjects with Box Colliders tagged "Tile".
+- **Tile**: Simple struct holding transform reference and grid position. Used by Movers to track their occupied cells.
+- **Player**: Derives from Mover. Handles input buffering and movement. Single instance per scene.
 
-**Game.cs** - The main game controller singleton (`Game.instance`). Manages:
-- LogicalGrid for spatial tracking
-- List of all Mover and Wall objects
-- Movement animation timing (moveTime, rotateTime, fallTime)
-- Input blocking and undo/redo coordination
-- Move planning and execution cycle (`MoveStart()`)
+### Game Management
+- **Game**: Singleton that manages movers, walls, movement execution, undo/reset, and the LogicalGrid. Controls movement timing via `moveTime`, `fallTime`, and `moveBufferSpeedupFactor`.
+- **LogicalGrid**: Spatial hash mapping `Vector3Int` positions to GameObjects. Used for collision detection.
+- **State**: Static class tracking undo stack. Records mover positions at each move for undo/reset functionality.
+- **Utils**: Static utility class for position queries (GetMoverAtPos, WallIsAtPos, TileIsEmpty, etc.).
 
-### Movement System
+### Level System
+- **LevelManager**: Singleton managing level loading/unloading via serialized level files.
+- **LevelLoader**: Loads `SerializedLevel` from JSON files in `Assets/Resources/Levels/`.
+- **LevelSerialization**: `SerializedLevel` and `SerializedLevelObject` classes for JSON serialization.
+- **SaveData**: Binary serialization for persistent player data (levels beaten).
 
-**Mover.cs** - Base class for all movable objects. Key concepts:
-- Tiles: Child gameObjects tagged "Tile" with BoxCollider define the shape
-- PlannedMove: Thread-safe property for queued movement during a cycle
-- CanMoveToward(): Checks walls, other movers, and validates multi-tile blocks
-- PlanPushes(): Recursively plans pushes for connected movers
-- DoPostMoveEffects(): Handles falling after movement
+### Events
+- **EventManager**: Static C# events (`onLevelStarted`, `onMoveComplete`, `onPush`, `onUndo`, `onReset`, etc.) for game-wide communication.
 
-**Player.cs** - Extends Mover, handles input:
-- Input buffering system for smooth multi-move input
-- Rolling animation using pivot transform
-- Single instance per scene enforced
+## Level Editor
 
-**State.cs** - Undo/redo system:
-- Tracks position and rotation of all movers
-- Stack-based state management with undoIndex
-- Z key triggers undo, R key triggers reset
+Access via **Window -> Level Editor** in Unity Editor.
 
-### Grid System
+- Prefabs defined in `Assets/leveleditorprefabs.txt` (one prefab name per line)
+- Levels saved as JSON in `Assets/Resources/Levels/`
+- Supports grid painting, erase mode, rotation (0/90/180/270), and spawn height adjustment
 
-**LogicalGrid.cs** - Spatial indexing:
-- `Dictionary<Vector3, HashSet<GameObject>>` maps integer grid positions to objects
-- `SyncContents()` rebuilds the grid from all "Tile" tagged objects
-- `GetContentsAt()` returns objects at a grid position
-- Handles multi-tile objects that span multiple grid cells
+## Movement System
 
-### Magnet System (New Feature)
+The movement system uses a two-phase approach:
+1. **Planning Phase**: `TryPlanMove()` validates and plans moves, propagating pushes to other movers
+2. **Execution Phase**: `MoveStart()` executes planned moves logically, then animates via DOTween
 
-**Magnet.cs** - Extends Mover, adds magnetic behavior:
-- AttachBlock list tracks connected magnets
-- MagnetType enum defines polarization (XP, XN, YP, YN, ZP, ZN)
-- MagnetField components on each magnet handle physics calculations
+Key coordinate: Z-axis is depth (forward = falling direction). Ground is at Z=0.
 
-**MagnetField.cs** - Magnetic field physics:
-- Complex polar type system (S, N, XPS, XPN, YPS, YPN, ZPS, ZPN)
-- Attraction/repulsion calculations based on relative positions
-- Uses OnTriggerEnter/Exit for field detection
+## Polyban Mode
 
-## Level System
+`Game.isPolyban` (default: true) determines push behavior:
+- `true`: Any mover can push other movers
+- `false`: Only the player can push (classic Sokoban)
 
-**Level Structure**:
-- Levels are stored as JSON files in `Assets/Resources/Levels/`
-- Each level has a parent GameObject tagged "Level"
-- LevelManager component tracks current level name
+## Example Games
 
-**LevelEditor** (Window -> Level Editor):
-- Paint prefabs by left-clicking in Scene view
-- Hold Alt + scroll to change spawn height
-- Right-click to select existing prefab
-- Rotate, invert, and save/load levels from editor window
-- Prefab list defined in `Assets/leveleditorprefabs.txt`
-
-## Tag System
-
-Required tags (auto-created by TagHelper):
-- `"Tile"` - Child objects with BoxCollider, defines mover/wall shape
-- `"Player"` - The single player instance
-- `"Level"` - Parent object for each level
-- `"Magnet"` - Magnet objects
-
-## Prefab Structure
-
-**Mover Prefabs** (e.g., Crate, Player):
-- Parent GameObject with Mover (or Player/Magnet) component
-- Child GameObjects tagged "Tile" with BoxCollider components
-- Multi-tile objects have multiple Tile children
-
-**Wall Prefabs**:
-- Parent GameObject with Wall component
-- Child GameObjects tagged "Tile" with BoxCollider
-
-## Editor Workflow
-
-1. Open Scene
-2. Add "GameController" prefab (found in ProjectSettings or create from Game prefab)
-3. Open Level Editor (Window -> Level Editor)
-4. Select prefab from dropdown
-5. Paint in Scene view (left-click, hold to paint continuously)
-6. Save level with "Save Level As"
-
-## Important Utility Functions
-
-**Utils.cs** contains static helpers:
-- `GetMoverAtPos(pos)` / `GetWallAtPos(pos)` - Query grid contents
-- `TileIsEmpty(pos)` - Check if position is free
-- `GroundBelow(mover)` - Check if mover has ground support
-- `IsRound(vector3, Direction)` - Check if position aligns with grid in direction
-- `AvoidIntersect(Transform)` - Prevent object overlap during placement
-
-**Tile.cs** - Simple struct referencing a child transform and its position
-
-## Common Patterns
-
-**Planning Movement**:
-```csharp
-// 1. Check if move is valid
-if (!CanMoveToward(ref MoveV3, Dir))
-    return false;
-
-// 2. Plan the move
-PlannedMove = MoveV3;
-
-// 3. Plan pushes for other movers
-PlanPushes(MoveV3, Dir);
-```
-
-**Multi-tile Objects**: Update `UpdateDirPos()` and get direction lists (`rightDir`, `leftDir`, etc.) before collision checks to handle objects spanning multiple grid cells.
-
-**Attached Movers**: Use `AttachBlock` list for magnets and other objects that move together.
+- `Assets/Examples/Sokoban/` - Classic Sokoban win condition example
+- `Assets/Examples/PipePushParadise/` - Pipe/water puzzle game example
