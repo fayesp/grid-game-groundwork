@@ -22,6 +22,7 @@ public class Utils
     #endregion
 
     #region Level Management
+
     private static List<string> allLevelsRef;
     public static List<string> allLevels
     {
@@ -53,11 +54,13 @@ public class Utils
     #endregion
 
     #region Scene Helpers
+
     public static string sceneName => SceneManager.GetActiveScene().name;
     public static bool isMetaScene => LevelManager.currentLevelName.Contains("0_");
     #endregion
 
     #region Vector Utilities (delegates to DirectionUtils)
+
     public static bool Roughly(float one, float two, float tolerance = 0.5f)
     {
         return DirectionUtils.Roughly(one, two, tolerance);
@@ -105,6 +108,7 @@ public class Utils
     #endregion
 
     #region Grid Queries (delegates to GridQuery)
+
     public static void AvoidIntersect(Transform root)
     {
         GridQuery.AvoidIntersect(root);
@@ -222,6 +226,7 @@ public class Utils
     #endregion
 
     #region Texture Utilities
+
     public static Texture2D MakeTex(int width, int height, Color col)
     {
         Color[] pix = new Color[width * height];
@@ -235,6 +240,7 @@ public class Utils
     #endregion
 
     #region Type Conversion
+
     public static int StringToInt(string intString)
     {
         int i = 0;

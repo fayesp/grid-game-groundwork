@@ -116,3 +116,6 @@ The `Utils` class provides backward-compatible methods that delegate to these cl
 
 ### Infinite Loop Prevention
 Movement planning methods (`TryPlanMove`, `CanMoveToward`, `PlanMove`, `PlanPushes`) use a `HashSet<Mover> visited` parameter to prevent infinite recursion with circular block configurations.
+
+## code standard
+Line spacing is required between regions

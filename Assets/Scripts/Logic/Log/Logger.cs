@@ -18,9 +18,11 @@ namespace Assets.Scripts
         public ConcurrentQueue<string> ErrorQueue { get; set; } = new ConcurrentQueue<string>();
         ManualResetEvent threadMarkup = new ManualResetEvent(false);
         #endregion property
+
         #region construtor
         public MyLogger() { WriteAsync(); }
         #endregion construtor
+
         #region instance
         private static MyLogger instance;
         public static MyLogger Instance
@@ -35,6 +37,7 @@ namespace Assets.Scripts
             }
         }
         #endregion instance
+
         #region Path
         public string CurrentDirectory = "";
         private static string _home = "";
@@ -61,6 +64,7 @@ namespace Assets.Scripts
         string InfoFileName = "info.log";
         string ErrorFileName = "error.log";
         #endregion Path
+
         #region StreamWrite
         public StreamWriter SW;
         public void GetWriteString(string FileName)

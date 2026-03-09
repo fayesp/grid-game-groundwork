@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc:*)",
+      "Bash(for dir in Data Logic Presentation)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Read(//d/Desktop/code/grid-game-groundwork/Assets/Scripts/**)",
+      "Bash(done)",
+      "Bash(ls:*)"
+    ]
+  }
+}

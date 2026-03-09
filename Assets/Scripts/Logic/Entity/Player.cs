@@ -23,6 +23,7 @@ public class Player : Mover
     GameObject parent;
     Vector3 rotationAxis = Vector3.zero;
     #endregion 变量定义
+
     #region 基础功能
     void Start()
     {
@@ -54,6 +55,7 @@ public class Player : Mover
         }
     }
     #endregion 基础功能
+
     #region 输入缓冲区
     /// <summary>
     /// 检查是否可以输入（没有按住撤销键且没有正在移动）
@@ -174,6 +176,7 @@ public class Player : Mover
     }
 
     #endregion 输入缓冲区
+
     #region 执行移动
     /// <summary>
     /// 检查输入缓冲区并执行移动

@@ -6,12 +6,14 @@ public class LogicalGrid
     #region variables
     private Dictionary<Vector3, HashSet<GameObject>> Contents;
     #endregion variables
+
     #region constructor
     public LogicalGrid()
     {
         Contents = new Dictionary<Vector3, HashSet<GameObject>>();
     }
     #endregion constructor
+
     #region sync contents
     /// <summary>
     /// 同步每个三维坐标包含的物体
@@ -91,6 +93,7 @@ public class LogicalGrid
     }
 
     #endregion sync contents
+
     #region get content at
     /// <summary>
     /// 每个坐标包含的物体
@@ -105,4 +108,5 @@ public class LogicalGrid
     }
 
     #endregion get content at
+
 }

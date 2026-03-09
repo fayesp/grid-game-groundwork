@@ -33,6 +33,7 @@ public static class GridQuery
     #endregion
 
     #region Get Tiles At Position
+
     public static HashSet<GameObject> GetTilesAt(Vector3Int pos)
     {
         if (Game.instance == null) return new HashSet<GameObject>();
@@ -41,6 +42,7 @@ public static class GridQuery
     #endregion
 
     #region Object At Position
+
     private static List<T> GetObjAtPos<T>(Vector3Int pos)
     {
         List<T> list = new List<T>();
@@ -74,6 +76,7 @@ public static class GridQuery
     #endregion
 
     #region Wall At Position
+
     public static List<Wall> GetWallAtPos(Vector3Int pos)
     {
         return GetObjAtPos<Wall>(pos);
@@ -91,6 +94,7 @@ public static class GridQuery
     #endregion
 
     #region Mover At Position
+
     public static List<Mover> GetMoverAtPos(Vector3 pos)
     {
         return GetMoverAtPos(Utils.Vec3ToInt(pos));
@@ -113,6 +117,7 @@ public static class GridQuery
     #endregion
 
     #region Player At Position
+
     public static bool PlayerAtPos(Vector3 v)
     {
         List<Mover> movers = GetMoverAtPos(v);
@@ -126,6 +131,7 @@ public static class GridQuery
     #endregion
 
     #region Above/Below Detection
+
     private static List<Mover> moversCache = new List<Mover>();
 
     public static List<Mover> MoversAbove(Mover m, bool clear = true)
@@ -195,6 +201,7 @@ public static class GridQuery
     #endregion
 
     #region Avoid Intersect
+
     public static void AvoidIntersect(Transform root)
     {
         bool intersecting = true;

@@ -12,6 +12,7 @@ public static class DirectionUtils
     #endregion
 
     #region Direction Detection
+
     /// <summary>
     /// Determine direction from a Vector3 movement vector.
     /// </summary>
@@ -73,6 +74,7 @@ public static class DirectionUtils
     #endregion
 
     #region Vector Rounding
+
     public static bool Roughly(float one, float two, float tolerance = 0.5f)
     {
         return Mathf.Abs(one - two) < tolerance;

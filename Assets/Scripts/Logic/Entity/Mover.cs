@@ -443,6 +443,7 @@ public class Mover : MonoBehaviour
 
     #endregion draw cube
 
+    #region Direction Position Utilities
 
     /// <summary>
     /// position占据的所有整数坐标
@@ -679,5 +680,7 @@ public class Mover : MonoBehaviour
     {
         return moveV3;
     }
+
+    #endregion Direction Position Utilities
 }
 
