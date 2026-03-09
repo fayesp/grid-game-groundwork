@@ -26,6 +26,7 @@ public class Game : MonoBehaviour
         }
     }
     #endregion 单例模式
+
     #region 公共变量
     public LogicalGrid Grid = new LogicalGrid(); // 游戏逻辑网格
     public static List<Mover> movers = new List<Mover>(); // 所有可移动对象
@@ -43,6 +44,7 @@ public class Game : MonoBehaviour
     public bool blockInput = false; // 是否阻止输入
     public bool isMoving { get { return movingCount > 0; } } // 是否有对象正在移动
     #endregion 公共变量
+
     #region Unity 生命周期方法
     /// <summary>
     /// 初始化游戏实例，设置帧率，加载存档
@@ -120,6 +122,7 @@ public class Game : MonoBehaviour
         }
     }
     #endregion Unity 生命周期方法
+
     #region 网格同步与刷新
     /// <summary>
     /// 刷新游戏状态
@@ -149,6 +152,7 @@ public class Game : MonoBehaviour
         Grid.SyncContents(tiles); // 同步网格内容
     }
     #endregion 网格同步与刷新
+
     #region 重置功能
     /// <summary>
     /// 重置游戏状态
@@ -161,6 +165,7 @@ public class Game : MonoBehaviour
         EventManager.onReset?.Invoke(); // 触发重置事件
     }
     #endregion 重置功能
+
     #region 撤销功能
     /// <summary>
     /// 执行撤销操作
@@ -198,6 +203,7 @@ public class Game : MonoBehaviour
         holdingUndo = false; // 停止长按撤销
     }
     #endregion 撤销功能
+
     #region 获取位置
     /// <summary>
     /// Mover 的位置结构体
@@ -242,6 +248,7 @@ public class Game : MonoBehaviour
         return Player.instance.transform.position; // 返回玩家当前的位置
     }
     #endregion 获取位置
+
     #region 移动逻辑
     /// <summary>
     /// 开始移动逻辑
@@ -326,6 +333,7 @@ public class Game : MonoBehaviour
         }
     }
     #endregion 移动逻辑
+
     #region 移动完成
     /// <summary>
     /// 移动完成后的处理
@@ -336,4 +344,5 @@ public class Game : MonoBehaviour
         EventManager.onMoveComplete?.Invoke(); // 触发移动完成事件
     }
     #endregion 移动完成
+
 }
