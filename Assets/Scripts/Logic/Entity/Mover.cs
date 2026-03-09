@@ -88,15 +88,26 @@ public class Mover : MonoBehaviour
     /// <returns></returns>
     public virtual bool TryPlanMove(Vector3 MoveV3, Direction Dir)
     {
-        if (!CanMoveToward(ref MoveV3, Dir))
+        HashSet<Mover> visited = new HashSet<Mover>();
+        if (!CanMoveToward(ref MoveV3, Dir, visited))
             return false;
         //todo canMoveToward改变了moveV3的值,planmove可以直接使用?
-        PlanMove(MoveV3, Dir);
+        visited.Clear();
+        PlanMove(MoveV3, Dir, visited);
         return true;
     }
 
-    public virtual bool CanMoveToward(ref Vector3 MoveV3, Direction Dir)
+    public virtual bool CanMoveToward(ref Vector3 MoveV3, Direction Dir, HashSet<Mover> visited = null)
     {
+        // Initialize visited set if not provided
+        if (visited == null)
+            visited = new HashSet<Mover>();
+
+        // Prevent infinite recursion with circular block configurations
+        if (visited.Contains(this))
+            return true; // Already checked this mover
+        visited.Add(this);
+
         foreach (Tile tile in tiles)
         {
             isNotRound = false;
@@ -143,14 +154,10 @@ public class Mover : MonoBehaviour
                     return false;
 
                 //这个是可以推动多个箱子时判断的,
-                //修复无限循环,tile可以增加一个checked的属性
-                // XXX: could this cause an infinite loop with, say,
-                // a U-shaped block and a single block inside, or two
-                // interlocking U-blocks? We can fix this by passing
-                // in (& ignoring) the set of already checked movers.
+                //使用visited set防止无限循环
                 foreach (var m in movers)
                 {
-                    if (!m.CanMoveToward(ref MoveV3, Dir))
+                    if (m != null && m != this && !m.CanMoveToward(ref MoveV3, Dir, visited))
                         return false;
                 }
             }
@@ -160,8 +167,12 @@ public class Mover : MonoBehaviour
     }
 
 
-    public virtual void PlanMove(Vector3 MoveV3, Direction Dir)
+    public virtual void PlanMove(Vector3 MoveV3, Direction Dir, HashSet<Mover> visited = null)
     {
+        // Initialize visited set if not provided
+        if (visited == null)
+            visited = new HashSet<Mover>();
+
         //防止强迫推动?加的判断,
         //防止自己推动自己,两个U形,u形加单块,死循环
         // Optional optimization - avoid redundant pushes
@@ -170,8 +181,14 @@ public class Mover : MonoBehaviour
 
         if (PlannedMove == MoveV3)
             return;
+
+        // Prevent infinite recursion
+        if (visited.Contains(this))
+            return;
+        visited.Add(this);
+
         PlannedMove = MoveV3;
-        PlanPushes(MoveV3, Dir);
+        PlanPushes(MoveV3, Dir, visited);
     }
 
     // If there are other movers in the given direction,
@@ -180,7 +197,7 @@ public class Mover : MonoBehaviour
     // already checked.
     //不适配多tile的块的push
 
-    protected void PlanPushes(Vector3 MoveV3, Direction Dir)
+    protected void PlanPushes(Vector3 MoveV3, Direction Dir, HashSet<Mover> visited)
     {
         foreach (Tile tile in tiles)
         {
@@ -302,7 +319,7 @@ public class Mover : MonoBehaviour
                         if (newMoveV3.magnitude > 0)
                         {
                             //可以直接planMove,canmoveforward里面已经判断过了
-                            mover.PlanMove(newMoveV3, Dir);
+                            mover.PlanMove(newMoveV3, Dir, visited);
                         }
                     }
                 }

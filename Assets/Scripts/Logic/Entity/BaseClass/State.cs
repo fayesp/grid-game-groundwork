@@ -3,9 +3,11 @@ using UnityEngine;
 
 public class State
 {
-    public struct MoverToTrack {
+    // Changed from struct to class to allow modifications in foreach loops
+    // Structs are value types - foreach iterations get copies, not references
+    public class MoverToTrack {
         public Mover mover;
-	    public Vector3 initialPos;
+        public Vector3 initialPos;
         public Vector3 initialRot;
         public List<Vector3Int> positions;
         public List<Vector3Int> rotations;

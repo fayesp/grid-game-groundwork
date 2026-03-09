@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using UnityEngine;
 
@@ -8,11 +7,10 @@ public class SaveData {
 
 	public static bool initialized { get; private set; } = false;
 	private static int gameNumber = 1;
-	private static BinaryFormatter bf = new BinaryFormatter();
 	private static PlayerData playerData = new PlayerData();
 
 	private static string Path(int i) {
-		return Application.persistentDataPath + "/" + i + ".dat";
+		return Application.persistentDataPath + "/" + i + ".json";
 	}
 
 	public static bool GameExists(int i) {
@@ -20,16 +18,14 @@ public class SaveData {
 	}
 
 	static PlayerData FileData(int i) {
-		FileStream file = File.Open(Path(i), FileMode.Open);
-		PlayerData data = (PlayerData)bf.Deserialize(file);
-		file.Close();
-		return data;
+		string json = File.ReadAllText(Path(i));
+		return JsonUtility.FromJson<PlayerData>(json);
 	}
 
 	public static void LoadGame(int i) {
 		initialized = true;
 		gameNumber = i;
-		
+
 		PlayerData data = new PlayerData();
 		if (GameExists(gameNumber)) {
 			data = FileData(gameNumber);
@@ -43,15 +39,9 @@ public class SaveData {
 		}
 	}
 
-	public static void SaveGame() {		
-		FileStream file;
-		if (File.Exists(Path(gameNumber))) {
-			file = File.Open(Path(gameNumber), FileMode.Open);
-		} else {
-			file = File.Create(Path(gameNumber));
-		}
-        bf.Serialize(file, playerData);
-		file.Close();
+	public static void SaveGame() {
+		string json = JsonUtility.ToJson(playerData, true);
+		File.WriteAllText(Path(gameNumber), json);
 	}
 
 	public static void BeatLevel(string level) {
