@@ -6,7 +6,12 @@
       "Bash(do echo \"=== $dir ===\")",
       "Read(//d/Desktop/code/grid-game-groundwork/Assets/Scripts/**)",
       "Bash(done)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"& { [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null; $template = @'<toast duration=\\\\\"short\\\\\"><visual><binding template=\\\\\"ToastText02\\\\\"><text id=\\\\\"1\\\\\">Test</text><text id=\\\\\"2\\\\\">Hello</text></binding></visual></toast>'@; $xml = New-Object Windows.Data.Xml.Dom.XmlDocument; $xml.LoadXml\\($template\\); $toast = [Windows.UI.Notifications.ToastNotification]::new\\($xml\\); [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier\\('Claude Code'\\).Show\\($toast\\) }\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Administrator\\\\.claude\\\\hooks\\\\notification\\\\PermissionNotification.ps1\")",
+      "Bash(cmd /c \"powershell -ExecutionPolicy Bypass -File C:/Users/Administrator/.claude/hooks/notification/PermissionNotification.ps1\")",
+      "Skill(update-config)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Users/Administrator/.claude/hooks/notification/PermissionNotification.ps1\")"
     ]
   }
 }
