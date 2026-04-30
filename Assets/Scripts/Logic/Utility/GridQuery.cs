@@ -4,6 +4,9 @@ using System.Linq;
 
 /// <summary>
 /// Grid query utilities for checking positions and getting objects at specific grid locations.
+///
+/// NOTE: This static class depends on Game.instance and is tightly coupled to Unity scene objects.
+/// For new code, prefer IGridQuery via GameBoardGridQuery which is testable and pure C#.
 /// </summary>
 public static class GridQuery
 {

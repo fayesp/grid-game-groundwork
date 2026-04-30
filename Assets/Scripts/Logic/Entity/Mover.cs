@@ -19,6 +19,12 @@ public class Mover : MonoBehaviour
 
     public bool isPlayer { get { return CompareTag("Player"); } }
 
+    /// <summary>
+    /// Pure C# model representation of this mover. Set during initialization by GamePresenter.
+    /// May be null during migration.
+    /// </summary>
+    public MoverModel Model { get; set; }
+
     // During a movement cycle, what's the next move (as a difference
     // from its current position) that this Mover will try to make?
 

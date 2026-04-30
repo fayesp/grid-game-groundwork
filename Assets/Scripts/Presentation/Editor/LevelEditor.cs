@@ -183,11 +183,6 @@ public class LevelEditor : EditorWindow {
     /// </summary>
     void OnValidate() {
         if (Utils.isMetaScene) return;
-        if (Game.instance == null) {
-            return;
-            //var prefab = (GameObject)AssetDatabase.LoadAssetAtPath(PathToAsset("GameController"), typeof(GameObject));
-            //var go = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-        } 
         EnsureTagsExist();
         Reset();
         Refresh();
@@ -207,7 +202,15 @@ public class LevelEditor : EditorWindow {
     /// </summary>
     void Refresh() {
         if (Utils.isMetaScene) return;
-        Game.instance?.EditorRefresh();
+
+        // Prefer new GamePresenter, fall back to legacy Game
+        var presenter = GameServices.Instance?.Presenter;
+        if (presenter != null) {
+            presenter.SyncFromScene();
+        } else {
+            Game.instance?.EditorRefresh();
+        }
+
         RefreshSavedLevels();
     }
 

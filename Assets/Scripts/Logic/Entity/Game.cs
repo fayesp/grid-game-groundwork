@@ -28,22 +28,52 @@ public class Game : MonoBehaviour
     #endregion 单例模式
 
     #region 公共变量
-    public LogicalGrid Grid = new LogicalGrid(); // 游戏逻辑网格
+    public LogicalGrid Grid = new LogicalGrid(); // 游戏逻辑网格 (legacy, to be replaced by GameBoard)
     public static List<Mover> movers = new List<Mover>(); // 所有可移动对象
     public static List<Wall> walls = new List<Wall>(); // 所有墙体对象
-    public float moveTime = 0.18f; // 移动 1 单位所需时间
-    public float rotateTime = 0.18f; //翻滚90度时间
-    public float fallTime = 0.1f; // 下落 1 单位所需时间
-    public float moveBufferSpeedupFactor = 0.5f; // 连续输入加速因子
-    public Ease moveEase = Ease.Linear; // 动画效果，默认线性匀速运动
-    public Ease rotateEase = Ease.OutCubic; // 动画效果,翻滚回弹?
+
+    // New Model layer: pure C# game board for testable logic.
+    // Runs in parallel with legacy systems during migration.
+    public GameBoard Board { get; private set; }
+
+    // Timing and animation settings now delegate to MovementSettings via GameServices.
+    // These properties maintain backward compatibility while centralizing configuration.
+    public float moveTime { get { return GetMovementSettings().moveTime; } }
+    public float rotateTime { get { return GetMovementSettings().rotateTime; } }
+    public float fallTime { get { return GetMovementSettings().fallTime; } }
+    public float moveBufferSpeedupFactor { get { return GetMovementSettings().moveBufferSpeedupFactor; } }
+    public Ease moveEase { get { return GetMovementSettings().moveEase; } }
+    public Ease rotateEase { get { return GetMovementSettings().rotateEase; } }
+    public static bool allowPushMulti { get { return GetMovementSettingsStatic().allowPushMulti; } }
+
     private int movingCount = 0; // 当前正在移动的对象计数
     private List<List<MoverPos>> PlannedMoves = new List<List<MoverPos>>(); // 计划的移动列表
     public bool holdingUndo { get; private set; } = false; // 是否正在长按撤销键
-    public static bool allowPushMulti = true; // 是否可以推动多个箱子
     public bool blockInput = false; // 是否阻止输入
     public bool isMoving { get { return movingCount > 0; } } // 是否有对象正在移动
+
+    // New Command-based undo system. Runs in parallel with legacy State during migration.
+    public CommandStack CommandStack { get; private set; }
     #endregion 公共变量
+
+    #region MovementSettings Helpers
+    private MovementSettings GetMovementSettings()
+    {
+        if (GameServices.Instance != null && GameServices.Instance.MovementSettings != null)
+            return GameServices.Instance.MovementSettings;
+
+        // Fallback during transition: create a temporary settings with defaults.
+        return ScriptableObject.CreateInstance<MovementSettings>();
+    }
+
+    private static MovementSettings GetMovementSettingsStatic()
+    {
+        if (GameServices.Instance != null && GameServices.Instance.MovementSettings != null)
+            return GameServices.Instance.MovementSettings;
+
+        return ScriptableObject.CreateInstance<MovementSettings>();
+    }
+    #endregion
 
     #region Unity 生命周期方法
     /// <summary>
@@ -54,6 +84,7 @@ public class Game : MonoBehaviour
         if (instanceRef == null || instanceRef == this)
         {
             instanceRef = this;
+            EnsureGameServices();
             Application.targetFrameRate = 60; // 设置目标帧率为 60
             if (Application.isEditor && !SaveData.initialized) // 如果在编辑器中且存档未初始化
             {
@@ -64,6 +95,57 @@ public class Game : MonoBehaviour
         else
         {
             MyLogger.Instance.WriteError("场景中存在多个 Game 实例"); // 报错提示多个实例
+        }
+    }
+
+    void EnsureGameServices()
+    {
+        if (GameServices.Instance == null)
+        {
+            GameObject servicesGo = new GameObject("GameServices");
+            servicesGo.AddComponent<GameServices>();
+        }
+    }
+
+    void InitGameBoard()
+    {
+        if (Board == null)
+        {
+            Board = new GameBoard();
+        }
+        else
+        {
+            Board.Clear();
+        }
+
+        int idCounter = 0;
+        foreach (var mover in movers)
+        {
+            if (mover == null) continue;
+            string id = mover.GetInstanceID().ToString();
+            var entity = new GridEntity(id, "Mover")
+            {
+                Position = mover.transform.position,
+                Rotation = mover.transform.eulerAngles,
+                IsPlayer = mover.isPlayer,
+                IsStatic = false
+            };
+            Board.RegisterEntity(entity);
+            idCounter++;
+        }
+
+        foreach (var wall in walls)
+        {
+            if (wall == null) continue;
+            string id = "wall_" + wall.GetInstanceID().ToString();
+            var entity = new GridEntity(id, "Wall")
+            {
+                Position = wall.transform.position,
+                Rotation = wall.transform.eulerAngles,
+                IsStatic = true
+            };
+            Board.RegisterEntity(entity);
+            idCounter++;
         }
     }
     /// <summary>
@@ -82,7 +164,8 @@ public class Game : MonoBehaviour
         blockInput = true; // 阻止输入
         yield return WaitFor.EndOfFrame; // 等待一帧
         SetReferences(); // 设置对象引用
-        State.Init(); // 初始化游戏状态
+        CommandStack = new CommandStack(); // 初始化新命令栈
+        State.Init(); // 初始化游戏状态 (legacy)
         foreach (Mover mover in movers)
         {
             State.AddMover(mover); // 将所有 Mover 添加到状态管理
@@ -100,6 +183,7 @@ public class Game : MonoBehaviour
         movers = FindObjectsOfType<Mover>().ToList(); // 查找所有 Mover 对象
         walls = FindObjectsOfType<Wall>().ToList(); // 查找所有 Wall 对象
         SyncGrid(); // 同步网格
+        InitGameBoard(); // 同步纯 C# Model 层
     }
     /// <summary>
     /// 每帧检测撤销和重置按键
@@ -160,7 +244,18 @@ public class Game : MonoBehaviour
     void DoReset()
     {
         DOTween.KillAll(); // 停止所有动画
-        State.DoReset(); // 重置游戏状态
+
+        // Try new command stack first, fall back to legacy State
+        if (CommandStack != null && CommandStack.UndoCount > 0)
+        {
+            CommandStack.ResetToBeginning();
+            SyncBoardToTransforms(); // Update model from current transforms after State fallback
+        }
+        else
+        {
+            State.DoReset(); // 重置游戏状态
+        }
+
         Refresh(); // 刷新游戏状态
         EventManager.onReset?.Invoke(); // 触发重置事件
     }
@@ -172,14 +267,30 @@ public class Game : MonoBehaviour
     /// </summary>
     void DoUndo()
     {
-        if (State.undoIndex <= 0) // 如果没有可撤销的操作
-            return;
         DOTween.KillAll(); // 停止所有动画
         if (isMoving) // 如果有对象正在移动
         {
             CompleteMove(); // 完成当前移动
         }
-        State.DoUndo(); // 执行撤销操作
+
+        // Try new command stack first, fall back to legacy State
+        bool undone = false;
+        if (CommandStack != null && CommandStack.UndoCount > 0)
+        {
+            undone = CommandStack.Undo();
+            if (undone)
+            {
+                SyncTransformsToBoard(); // Apply model positions to views after undo
+            }
+        }
+
+        if (!undone)
+        {
+            if (State.undoIndex <= 0) // 如果没有可撤销的操作
+                return;
+            State.DoUndo(); // 执行撤销操作
+        }
+
         Refresh(); // 刷新游戏状态
         EventManager.onUndo?.Invoke(); // 触发撤销事件
     }
@@ -340,9 +451,62 @@ public class Game : MonoBehaviour
     /// </summary>
     public void CompleteMove()
     {
-        State.OnMoveComplete(); // 通知状态管理移动完成
+        State.OnMoveComplete(); // 通知状态管理移动完成 (legacy)
+
+        // Record board snapshot in new command stack for undo support
+        if (Board != null && CommandStack != null)
+        {
+            SyncTransformsToBoard(); // Ensure board reflects current positions after move
+            var snapshotCmd = new SnapshotCommand(Board);
+            CommandStack.Execute(snapshotCmd);
+        }
+
         EventManager.onMoveComplete?.Invoke(); // 触发移动完成事件
     }
+
+    #region Board Synchronization
+
+    /// <summary>
+    /// Updates GameBoard entity positions from current transform positions.
+    /// Call after legacy movement system modifies transforms.
+    /// </summary>
+    void SyncTransformsToBoard()
+    {
+        if (Board == null)
+            return;
+
+        foreach (var mover in movers)
+        {
+            if (mover == null) continue;
+            string id = mover.GetInstanceID().ToString();
+            Board.SetEntityPosition(id, mover.transform.position);
+            Board.SetEntityRotation(id, mover.transform.eulerAngles);
+        }
+    }
+
+    /// <summary>
+    /// Updates transform positions from GameBoard entity positions.
+    /// Call after CommandStack Undo restores board state.
+    /// </summary>
+    void SyncBoardToTransforms()
+    {
+        if (Board == null)
+            return;
+
+        foreach (var mover in movers)
+        {
+            if (mover == null) continue;
+            string id = mover.GetInstanceID().ToString();
+            var entity = Board.GetEntity(id);
+            if (entity != null)
+            {
+                mover.transform.position = entity.Position;
+                mover.transform.eulerAngles = entity.Rotation;
+            }
+        }
+    }
+
+    #endregion
     #endregion 移动完成
 
 }
