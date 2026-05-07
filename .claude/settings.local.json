@@ -11,7 +11,14 @@
       "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Administrator\\\\.claude\\\\hooks\\\\notification\\\\PermissionNotification.ps1\")",
       "Bash(cmd /c \"powershell -ExecutionPolicy Bypass -File C:/Users/Administrator/.claude/hooks/notification/PermissionNotification.ps1\")",
       "Skill(update-config)",
-      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Users/Administrator/.claude/hooks/notification/PermissionNotification.ps1\")"
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Users/Administrator/.claude/hooks/notification/PermissionNotification.ps1\")",
+      "Bash(python *)",
+      "Bash(xxd *)",
+      "Bash(git checkout *)",
+      "Bash(git reset *)",
+      "Bash(grep -E \"\\(///|^\\\\-.*// |^\\\\+.*// \\)\")",
+      "Bash(grep \"^-.*///\")",
+      "Bash(grep \"//\")"
     ]
   }
 }
