@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -16,6 +16,9 @@ public class GameBoard
         entities = new Dictionary<string, GridEntity>();
         spatialGrid = new SpatialGrid();
     }
+
+
+
 
     #region Entity Registration
 
