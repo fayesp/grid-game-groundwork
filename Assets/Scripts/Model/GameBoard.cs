@@ -20,7 +20,11 @@ public class GameBoard
 
 
 
+
+
+
     #region Entity Registration
+
 
     public void RegisterEntity(GridEntity entity)
     {
