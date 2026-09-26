@@ -688,5 +688,9 @@ public class Mover : MonoBehaviour
     }
 
     #endregion Direction Position Utilities
+    public virtual bool CanMoveToward(ref Vector3 MoveV3, Direction dir)
+    {
+        return false;
+    }
 }
 
