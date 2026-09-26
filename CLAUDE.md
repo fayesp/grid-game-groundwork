@@ -119,3 +119,13 @@ Movement planning methods (`TryPlanMove`, `CanMoveToward`, `PlanMove`, `PlanPush
 
 ## code standard
 Line spacing is required between regions
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked as GitHub issues on this repo, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
