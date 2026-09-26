@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using UnityEngine;
+using Assets.Scripts;
 
 /// <summary>
 /// Presenter that coordinates the Model (GameBoard, CommandStack) and Views (MoverView, PlayerView).

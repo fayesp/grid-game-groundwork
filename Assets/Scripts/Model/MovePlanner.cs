@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Assets.Scripts;
 
 /// <summary>
 /// Pure C# movement planner that validates and plans moves without Unity dependencies.
