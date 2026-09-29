@@ -422,7 +422,8 @@ public class Game : MonoBehaviour
             ++movingCount; // 增加移动计数
             if (move.m.CompareTag("Player"))
             {
-                //todo player的翻滚处理,调用rollcube的方法?
+                //按本周期实际位移计算翻滚支点与轴向（下落周期同样适用）
+                Player.instance.CalRollPivot(move.Pos - move.m.Pos());
                 Player.instance.OnRollPlayer(rotateTime,rotateEase);
             }
             else

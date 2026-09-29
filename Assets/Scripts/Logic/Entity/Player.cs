@@ -161,18 +161,37 @@ public class Player : Mover
         return Vector3Int.zero;
     }
     public void CalRollPivot(Vector3 Dir)
-    { 
-        //计算锚点:pivot的坐标
-        pivot.transform.position = transform.position + Vector3.forward * 0.5f + Dir * 0.5f;
-        //计算旋转轴（垂直于移动方向和坐标轴）
-        rotationAxis = Vector3.Cross(Vector3.back, Dir).normalized;
+    {
+        //若上次翻滚动画被中途打断（如撤销触发的 KillAll），玩家可能仍挂在 pivot 下，先脱离再计算
+        if (transform.parent == pivot.transform)
+        {
+            transform.SetParent(parent.transform);
+        }
+        //计算锚点:行进前缘的底边中点（游戏平面为 XY，Z 为深度）
+        Vector3 side = (Dir.x != 0 || Dir.z != 0) ? Vector3.down : Vector3.left;
+        pivot.transform.position = transform.position + Dir * 0.5f + side * 0.5f;
+        //重置 pivot 旋转，避免 LocalAxisAdd 的局部轴被上次翻滚的累加旋转污染
+        pivot.transform.rotation = Quaternion.identity;
+        //计算旋转轴：水平/竖直移动绕 +Z（右/下 -90°，左/上 +90°），前后移动绕 X
+        if (Dir.z != 0)
+        {
+            rotationAxis = Vector3.right * Dir.z;
+        }
+        else
+        {
+            rotationAxis = Vector3.forward * (Dir.y - Dir.x);
+        }
     }
 
     public void OnRollPlayer(float rollDuration,Ease rotateEase)
     {
         transform.SetParent(pivot.transform);
-        pivot.transform.DORotate(rotationAxis * 90f,rollDuration,RotateMode.LocalAxisAdd).SetEase(rotateEase).OnComplete(Game.instance.MoveEnd);
-        transform.SetParent(parent.transform);
+        pivot.transform.DORotate(rotationAxis * 90f,rollDuration,RotateMode.LocalAxisAdd).SetEase(rotateEase).OnComplete(() =>
+        {
+            //必须在动画完成后再脱离 pivot，否则 tween 只会作用到空的 pivot 上
+            transform.SetParent(parent.transform);
+            Game.instance.MoveEnd();
+        });
     }
 
     #endregion 输入缓冲区
@@ -195,8 +214,6 @@ public class Player : Mover
         // 尝试计划移动，如果成功则开始移动
         if (TryPlanMove(MoveV3, Dir))
         {
-            //todo 计算旋转的参数
-            CalRollPivot(MoveV3);
             Game.instance.MoveStart();
         }
     }
