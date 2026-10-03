@@ -162,7 +162,8 @@ public class Game : MonoBehaviour
     IEnumerator InitAfterFrame()
     {
         blockInput = true; // 阻止输入
-        yield return WaitFor.EndOfFrame; // 等待一帧
+        // 不能用 WaitFor.EndOfFrame：batchmode 下无渲染帧，该等待永不完成会导致初始化卡死
+        yield return null; // 等待一帧
         SetReferences(); // 设置对象引用
         CommandStack = new CommandStack(); // 初始化新命令栈
         State.Init(); // 初始化游戏状态 (legacy)
@@ -310,7 +311,8 @@ public class Game : MonoBehaviour
     /// </summary>
     IEnumerator StopUndoing()
     {
-        yield return WaitFor.EndOfFrame; // 等待一帧
+        // 不能用 WaitFor.EndOfFrame：batchmode 下该等待永不完成
+        yield return null; // 等待一帧
         holdingUndo = false; // 停止长按撤销
     }
     #endregion 撤销功能
@@ -422,9 +424,18 @@ public class Game : MonoBehaviour
             ++movingCount; // 增加移动计数
             if (move.m.CompareTag("Player"))
             {
-                //按本周期实际位移计算翻滚支点与轴向（下落周期同样适用）
-                Player.instance.CalRollPivot(move.Pos - move.m.Pos());
-                Player.instance.OnRollPlayer(rotateTime,rotateEase);
+                if (falling)
+                {
+                    // 下落：翻滚参数（pivot 位置/旋转轴）是水平移动时的陈旧值，不可复用，
+                    // 否则玩家会绕水平轴横向甩出。下落与其他 Mover 一样直线移动
+                    move.m.transform.DOMove(move.Pos, dur).OnComplete(MoveEnd).SetEase(moveEase);
+                }
+                else
+                {
+                    //按本周期实际位移计算翻滚支点与轴向
+                    Player.instance.CalRollPivot(move.Pos - move.m.Pos());
+                    Player.instance.OnRollPlayer(rotateTime, rotateEase);
+                }
             }
             else
             {

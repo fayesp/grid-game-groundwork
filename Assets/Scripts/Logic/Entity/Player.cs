@@ -20,16 +20,17 @@ public class Player : Mover
     // 输入缓冲区，用于存储玩家的输入方向
     public List<Vector3Int> InputBuffer = new List<Vector3Int>();
     GameObject pivot;
-    GameObject parent;
+    // 翻滚前的原始父物体，动画完成后恢复
+    Transform originalParent;
     Vector3 rotationAxis = Vector3.zero;
     #endregion 变量定义
 
     #region 基础功能
-    void Start()
+    protected override void Start()
     {
+        base.Start(); // Mover.Start: 收集 Tile 子物体，供 GroundBelow 等查询使用
         pivot = new GameObject("RollPivot");
-        parent = new GameObject("Parent");
-        parent.transform.SetParent(transform.parent);
+        originalParent = transform.parent;
     }
     /// <summary>
     /// 初始化玩家实例
@@ -165,7 +166,7 @@ public class Player : Mover
         //若上次翻滚动画被中途打断（如撤销触发的 KillAll），玩家可能仍挂在 pivot 下，先脱离再计算
         if (transform.parent == pivot.transform)
         {
-            transform.SetParent(parent.transform);
+            transform.SetParent(originalParent);
         }
         //计算锚点:行进前缘的底边中点（游戏平面为 XY，Z 为深度）
         Vector3 side = (Dir.x != 0 || Dir.z != 0) ? Vector3.down : Vector3.left;
@@ -186,10 +187,10 @@ public class Player : Mover
     public void OnRollPlayer(float rollDuration,Ease rotateEase)
     {
         transform.SetParent(pivot.transform);
+        // 父级恢复必须等动画完成：立即恢复会让玩家脱离 pivot，翻滚动画彻底失效
         pivot.transform.DORotate(rotationAxis * 90f,rollDuration,RotateMode.LocalAxisAdd).SetEase(rotateEase).OnComplete(() =>
         {
-            //必须在动画完成后再脱离 pivot，否则 tween 只会作用到空的 pivot 上
-            transform.SetParent(parent.transform);
+            transform.SetParent(originalParent);
             Game.instance.MoveEnd();
         });
     }

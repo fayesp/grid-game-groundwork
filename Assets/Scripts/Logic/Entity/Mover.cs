@@ -56,7 +56,7 @@ public class Mover : MonoBehaviour
 
     #region initialize
 
-    void Start()
+    protected virtual void Start()
     {
         CreateTiles();
     }
