@@ -2,11 +2,9 @@
 using System.Collections;
 using UnityEngine;
 using DG.Tweening;
-using TMPro;
 using Assets.Scripts;
 using System.IO;
 using System;
-using System.Runtime.Remoting.Messaging;
 using System.Linq;
 
 public class Mover : MonoBehaviour
@@ -688,9 +686,5 @@ public class Mover : MonoBehaviour
     }
 
     #endregion Direction Position Utilities
-    public virtual bool CanMoveToward(ref Vector3 MoveV3, Direction dir)
-    {
-        return false;
-    }
 }
 
