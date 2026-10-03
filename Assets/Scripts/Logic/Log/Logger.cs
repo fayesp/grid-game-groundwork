@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 namespace Assets.Scripts
 {
     public class MyLogger
@@ -122,15 +119,14 @@ namespace Assets.Scripts
             {
                 foreach (var ex in t.Exception.Flatten().InnerExceptions)
                 {
-                    WriteOSEvent(string.Format("[LogHandler:WriteAsync]:Write log into file fail,Detail:{0},StackTrace:{1}", ex.Message, ex.StackTrace), EventLogEntryType.Error);
+                    WriteFailLog(string.Format("[LogHandler:WriteAsync]:Write log into file fail,Detail:{0},StackTrace:{1}", ex.Message, ex.StackTrace));
                 }
             }, TaskContinuationOptions.OnlyOnFaulted);
         }
-        void WriteOSEvent(string msg, EventLogEntryType type)
+        // 文件写入失败时退化为 Unity 控制台输出（System.Diagnostics.EventLog 在 Unity 程序集配置下不可用）
+        void WriteFailLog(string msg)
         {
-            System.Diagnostics.EventLog eventLog = new System.Diagnostics.EventLog();
-            eventLog.Source = "Log Service";
-            eventLog.WriteEntry(msg, type);
+            UnityEngine.Debug.LogError(msg);
         }
         #endregion StreamWrite
     }
