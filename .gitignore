@@ -68,3 +68,8 @@ Assets/Plugins.meta
 #claude code generate docs
 # docs/
 /Extraction/obj/Debug
+
+# Unity batchmode test artifacts
+/test-results/
+Assets/InitTestScene*.unity
+Assets/InitTestScene*.unity.meta

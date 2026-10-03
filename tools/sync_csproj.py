@@ -40,6 +40,9 @@ FRAMEWORK = ['mscorlib', 'System', 'System.Core', 'System.Data', 'System.Xml', '
 def collect_cs():
     # glob returns os.sep-separated paths on Windows; normalize to '/' first
     all_cs = [f.replace(os.sep, '/') for f in sorted(glob.glob('Assets/**/*.cs', recursive=True))]
+    # Assets/Tests 属于 Tests.PlayMode 等 asmdef 程序集（引用 NUnit），
+    # 不归入 legacy csproj，否则 dotnet build 缺少测试框架引用会报错
+    all_cs = [f for f in all_cs if not f.startswith('Assets/Tests/')]
     plugins = [f for f in all_cs if f.startswith('Assets/Plugins/')]
     editor = [f for f in all_cs if '/Editor/' in f]
     editor_set, plugins_set = set(editor), set(plugins)

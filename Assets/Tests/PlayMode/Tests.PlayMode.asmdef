@@ -1,0 +1,13 @@
+{
+    "name": "Tests.PlayMode",
+    "references": [
+        "Game.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "DOTween.dll"
+    ]
+}
