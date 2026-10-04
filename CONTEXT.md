@@ -18,6 +18,10 @@ A static grid object that blocks movement, including the ground.
 **Player**:
 The single Mover driven by user input. One per scene.
 
+**翻滚 (Roll)**:
+The movement animation convention for the player (and movers): a physical tip-over around the leading edge of the support face (+Z side) — up/down rolls around the X axis, left/right around the Y axis; there is no roll around Z. See ADR-0001.
+_Avoid_: screen-plane roll（屏幕面内翻滚）
+
 **Tile**:
 One occupied grid cell — a transform reference plus a grid position (the `Tile` struct). Also the name of the Unity tag that child Box Colliders of Walls and Movers must carry.
 
