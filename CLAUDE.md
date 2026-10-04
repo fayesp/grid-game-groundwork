@@ -119,3 +119,13 @@ Movement planning methods (`TryPlanMove`, `CanMoveToward`, `PlanMove`, `PlanPush
 
 ## code standard
 Line spacing is required between regions
+
+## Agent skills
+
+### Issue tracker
+
+Issues 与 spec 以 GitHub issue 形式跟踪（用 `gh` CLI）。见 `docs/agents/issue-tracker.md`。
+
+### Domain docs
+
+单上下文：术语表在根目录 `CONTEXT.md`，ADR 在 `docs/adr/`（缺失时按需惰性创建）。见 `docs/agents/domain.md`。
