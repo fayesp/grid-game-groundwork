@@ -155,6 +155,90 @@ public class PlayerRollMoveTests
         Assert.IsFalse(Game.instance.isMoving);
     }
 
+    /// <summary>
+    /// 物理接地翻滚基准（ADR-0001）：绕支撑面前缘边翻倒——非运动的水平轴保持恒定，
+    /// 中心沿 -Z 短暂抬起（约 0.207）。锁定右移：y 恒为 0、z 有抬升、终点 (6,0,0)。
+    /// 屏幕面内翻滚（绕 Z 轴、y 恒定但无抬升、z 恒为 0）对本测试为红。
+    /// </summary>
+    [UnityTest]
+    public IEnumerator RollRight_PhysicalTipOver_YConstant_ZLifts()
+    {
+        player.InputBuffer.Add(Vector3Int.right);
+        player.CheckBufferedInput();
+
+        float maxAbsY = 0f;
+        float minZ = float.MaxValue;
+        for (float t = 0; t < 0.2f; t += Time.deltaTime)
+        {
+            Vector3 p = player.transform.position;
+            maxAbsY = Mathf.Max(maxAbsY, Mathf.Abs(p.y));
+            minZ = Mathf.Min(minZ, p.z);
+            yield return null;
+        }
+        Assert.LessOrEqual(maxAbsY, 0.05f, "右移翻滚 y 应保持为 0，实际 |y| = " + maxAbsY);
+        Assert.Less(minZ, -0.15f, "右移翻滚中心应沿 -Z 抬起，实际 minZ = " + minZ);
+
+        yield return new WaitForSeconds(1.3f);
+        Assert.AreEqual(new Vector3(6, 0, 0), player.transform.position);
+        Assert.AreEqual(container.transform, player.transform.parent);
+        Assert.IsFalse(Game.instance.isMoving);
+    }
+
+    /// <summary>
+    /// 上滚绕 +X（ADR-0001）：x 恒为 5、z 抬升、终点 (5,1,0)。
+    /// 屏幕面内翻滚（绕 Z 轴、x 左右摆动）对本测试为红。
+    /// </summary>
+    [UnityTest]
+    public IEnumerator RollUp_PhysicalTipOver_XConstant_ZLifts()
+    {
+        player.InputBuffer.Add(Vector3Int.up);
+        player.CheckBufferedInput();
+
+        float maxAbsX = 0f;
+        float minZ = float.MaxValue;
+        for (float t = 0; t < 0.2f; t += Time.deltaTime)
+        {
+            Vector3 p = player.transform.position;
+            maxAbsX = Mathf.Max(maxAbsX, Mathf.Abs(p.x - 5f));
+            minZ = Mathf.Min(minZ, p.z);
+            yield return null;
+        }
+        Assert.LessOrEqual(maxAbsX, 0.05f, "上移翻滚 x 应保持为 5，实际 |x-5| = " + maxAbsX);
+        Assert.Less(minZ, -0.15f, "上移翻滚中心应沿 -Z 抬起，实际 minZ = " + minZ);
+
+        yield return new WaitForSeconds(1.3f);
+        Assert.AreEqual(new Vector3(5, 1, 0), player.transform.position, "翻滚完成后玩家应停在上方一格");
+        Assert.AreEqual(container.transform, player.transform.parent, "动画完成后父级应恢复为原始父物体");
+        Assert.IsFalse(Game.instance.isMoving);
+    }
+
+    /// <summary>
+    /// 下滚绕 -X（ADR-0001）：与上滚同构——x 恒为 5、z 抬升、终点 (5,-1,0)。
+    /// </summary>
+    [UnityTest]
+    public IEnumerator RollDown_PhysicalTipOver_XConstant_ZLifts()
+    {
+        player.InputBuffer.Add(Vector3Int.down);
+        player.CheckBufferedInput();
+
+        float maxAbsX = 0f;
+        float minZ = float.MaxValue;
+        for (float t = 0; t < 0.2f; t += Time.deltaTime)
+        {
+            Vector3 p = player.transform.position;
+            maxAbsX = Mathf.Max(maxAbsX, Mathf.Abs(p.x - 5f));
+            minZ = Mathf.Min(minZ, p.z);
+            yield return null;
+        }
+        Assert.LessOrEqual(maxAbsX, 0.05f, "下移翻滚 x 应保持为 5，实际 |x-5| = " + maxAbsX);
+        Assert.Less(minZ, -0.15f, "下移翻滚中心应沿 -Z 抬起，实际 minZ = " + minZ);
+
+        yield return new WaitForSeconds(1.3f);
+        Assert.AreEqual(new Vector3(5, -1, 0), player.transform.position, "翻滚完成后玩家应停在下方一格");
+        Assert.AreEqual(container.transform, player.transform.parent, "动画完成后父级应恢复为原始父物体");
+        Assert.IsFalse(Game.instance.isMoving);
+    }
+
     [UnityTest]
     public IEnumerator RollRightThenFall_FallMovesStraightDownOneCell()
     {

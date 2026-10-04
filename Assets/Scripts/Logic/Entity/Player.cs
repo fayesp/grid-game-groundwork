@@ -168,20 +168,15 @@ public class Player : Mover
         {
             transform.SetParent(originalParent);
         }
-        //计算锚点:行进前缘的底边中点（游戏平面为 XY，Z 为深度）
-        Vector3 side = (Dir.x != 0 || Dir.z != 0) ? Vector3.down : Vector3.left;
-        pivot.transform.position = transform.position + Dir * 0.5f + side * 0.5f;
+        //物理接地翻滚（ADR-0001）：支点取支撑面（+Z 侧半格，即朝下落方向贴地的一面）上行进前缘边的中点。
+        //翻滚时方块绕该边翻倒，中心短暂沿 -Z 抬起约 0.207 是正常外观
+        pivot.transform.position = transform.position + Dir * 0.5f + Vector3.forward * 0.5f;
         //重置 pivot 旋转，避免 LocalAxisAdd 的局部轴被上次翻滚的累加旋转污染
         pivot.transform.rotation = Quaternion.identity;
-        //计算旋转轴：水平/竖直移动绕 +Z（右/下 -90°，左/上 +90°），前后移动绕 X
-        if (Dir.z != 0)
-        {
-            rotationAxis = Vector3.right * Dir.z;
-        }
-        else
-        {
-            rotationAxis = Vector3.forward * (Dir.y - Dir.x);
-        }
+        //旋转轴 = Cross(back, Dir)：上下移动绕 X（上 +X / 下 -X），左右移动绕 Y（左 +Y / 右 -Y），无绕 Z 的翻滚。
+        //Dir 沿 Z 时轴退化为零向量（无法绕行进方向本身翻滚）：输入只有平面四方向、下落走直线 DOMove，该分支不会发生；
+        //万一发生时零轴使 DORotate 不旋转但仍触发 OnComplete 收尾，属安全降级
+        rotationAxis = Vector3.Cross(Vector3.back, Dir);
     }
 
     public void OnRollPlayer(float rollDuration,Ease rotateEase)

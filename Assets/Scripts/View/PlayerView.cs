@@ -64,19 +64,13 @@ public class PlayerView : MonoBehaviour
 
     void CalculateRollPivot(Vector3 dir)
     {
-        //游戏平面为 XY（Z 为深度），支点取行进前缘的底边中点
-        Vector3 side = (dir.x != 0 || dir.z != 0) ? Vector3.down : Vector3.left;
-        pivot.transform.position = transform.position + dir * 0.5f + side * 0.5f;
+        //物理接地翻滚（ADR-0001）：支点取支撑面（+Z 侧半格）上行进前缘边的中点，
+        //与 Player.CalRollPivot 保持同一份公式
+        pivot.transform.position = transform.position + dir * 0.5f + Vector3.forward * 0.5f;
         //重置 pivot 旋转，避免 LocalAxisAdd 的局部轴被上次翻滚的累加旋转污染
         pivot.transform.rotation = Quaternion.identity;
-        //旋转轴：水平/竖直移动绕 +Z（右/下 -90°，左/上 +90°），前后移动绕 X
-        if (dir.z != 0)
-        {
-            rotationAxis = Vector3.right * dir.z;
-        }
-        else
-        {
-            rotationAxis = Vector3.forward * (dir.y - dir.x);
-        }
+        //旋转轴 = Cross(back, dir)：上下移动绕 X，左右移动绕 Y，无绕 Z 的翻滚；
+        //dir 沿 Z 时轴退化为零向量，DORotate 不旋转但仍触发 OnComplete 收尾（安全降级，该分支实际不会发生）
+        rotationAxis = Vector3.Cross(Vector3.back, dir);
     }
 }
